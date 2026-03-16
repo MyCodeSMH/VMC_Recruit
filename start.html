@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Resume Matcher</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+body{
+background:#020617;
+color:white;
+}
+
+.dropbox{
+border:2px dashed #06b6d4;
+padding:40px;
+border-radius:12px;
+text-align:center;
+cursor:pointer;
+}
+
+.dropbox:hover{
+background:#0f172a;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+padding:12px;
+border-bottom:1px solid #1e293b;
+}
+
+</style>
+
+</head>
+
+<body class="p-10">
+
+<div class="max-w-5xl mx-auto">
+
+<h1 class="text-4xl font-bold mb-8 text-cyan-400">
+Resume – Job Description Matcher
+</h1>
+
+
+<!-- JOB DESCRIPTION -->
+
+<div class="mb-10">
+
+<h2 class="text-xl mb-3 font-semibold">Job Description</h2>
+
+<textarea id="jobDesc"
+class="w-full p-4 rounded bg-slate-900 border border-slate-700"
+rows="6"
+placeholder="Paste job description here..."></textarea>
+
+</div>
+
+
+<!-- DROPBOX -->
+
+<div class="mb-10">
+
+<h2 class="text-xl mb-3 font-semibold">Upload Resumes</h2>
+
+<div class="dropbox" onclick="document.getElementById('fileInput').click()">
+
+Drop resumes here or click to upload
+
+<input
+type="file"
+id="fileInput"
+multiple
+accept=".pdf,.txt"
+class="hidden"
+onchange="handleFiles(event)"
+>
+
+</div>
+
+</div>
+
+
+<!-- RESULTS TABLE -->
+
+<h2 class="text-xl font-semibold mb-4">Results</h2>
+
+<table id="resultsTable">
+
+<thead>
+
+<tr class="text-left text-cyan-400">
+<th>Name</th>
+<th>Phone</th>
+<th>Address</th>
+<th>Match %</th>
+<th>Download</th>
+</tr>
+
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+</div>
+
+
+<script>
+
+async function handleFiles(event){
+
+const files = event.target.files
+const jobDesc = document.getElementById("jobDesc").value.toLowerCase()
+
+for(let file of files){
+
+let text = ""
+
+if(file.type==="application/pdf"){
+text = await extractPDFText(file)
+}else{
+text = await file.text()
+}
+
+processResume(text,file,jobDesc)
+
+}
+
+}
+
+
+function processResume(text,file,jobDesc){
+
+text = text.toLowerCase()
+
+const name = extractName(text)
+const phone = extractPhone(text)
+const address = extractAddress(text)
+
+const score = calculateMatch(text,jobDesc)
+
+addRow(name,phone,address,score,file)
+
+}
+
+
+function calculateMatch(resume,job){
+
+const jobWords = job.split(/\W+/)
+const resumeWords = resume.split(/\W+/)
+
+let matches = 0
+
+jobWords.forEach(word=>{
+if(resumeWords.includes(word)) matches++
+})
+
+return Math.round((matches/jobWords.length)*100)
+
+}
+
+
+function extractName(text){
+
+const lines = text.split("\n")
+
+return lines[0]?.slice(0,30) || "Unknown"
+
+}
+
+function extractPhone(text){
+
+const match = text.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)
+
+return match ? match[0] : "Not Found"
+
+}
+
+function extractAddress(text){
+
+const match = text.match(/\d+\s+\w+\s+\w+/)
+
+return match ? match[0] : "Not Found"
+
+}
+
+
+function addRow(name,phone,address,score,file){
+
+const table = document.querySelector("#resultsTable tbody")
+
+const row = document.createElement("tr")
+
+row.innerHTML = `
+<td>${name}</td>
+<td>${phone}</td>
+<td>${address}</td>
+<td class="text-cyan-400 font-semibold">${score}%</td>
+<td>
+<a href="${URL.createObjectURL(file)}" download class="text-blue-400 underline">
+Download
+</a>
+</td>
+`
+
+table.appendChild(row)
+
+}
+
+
+async function extractPDFText(file){
+
+const pdfData = await file.arrayBuffer()
+
+const pdf = await pdfjsLib.getDocument({data:pdfData}).promise
+
+let text = ""
+
+for(let i=1;i<=pdf.numPages;i++){
+
+const page = await pdf.getPage(i)
+
+const content = await page.getTextContent()
+
+content.items.forEach(item=>{
+text += item.str + " "
+})
+
+}
+
+return text
+
+}
+
+</script>
+
+</body>
+</html>
