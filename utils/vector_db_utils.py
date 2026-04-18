@@ -57,13 +57,13 @@ class VectorDB:
         return user_name,user_email, user_phone,cid, True
         # st.write(f"uploading to vector DB took **{time_taken:.4f}** seconds")
     
-    def getTopMatches(self,jd):
+    def getTopMatches(self,jd,k=5):
         # pdb.set_trace()
         query_payload = {
             "inputs": {
                 "text": jd
             },
-            "top_k": 25
+            "top_k": k
         }
 
         results = self.index.search(

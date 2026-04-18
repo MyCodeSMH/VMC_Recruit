@@ -4,15 +4,16 @@ from utils.ddb_utils import DDB
 
 
 def getStatus():
-    print("PineCone:\n")
-    vdb=VectorDB()
-    vdb.clearVectorDB()
-    print("s3:\n")
+    # print("PineCone:\n")
+    # vdb=VectorDB()
+    # vdb.clearVectorDB()
+    # print("s3:\n")
     s3=S3()
-    s3.list_s3_files()
-    print("DynamoDB:\n")
-    ddb=DDB()
-    ddb.getRecordCount()
+    s3.list_s3_files(default_folder=False)
+    s3.delete_files(default_folder=False)
+    # print("DynamoDB:\n")
+    # ddb=DDB()
+    # ddb.getRecordCount()
 
 def clearComponents():
     print("PineCone:\n")
@@ -30,7 +31,7 @@ def clearComponents():
 def main():
 #    print("fetching component status...")
    getStatus()
-   print("clear component status...")
+#    print("clear component status...")
 #    clearComponents()
 #    print("fetching component status...")
 #    getStatus()
