@@ -15,3 +15,5 @@ google-generativeai
 mistralai==1.9.11
 pypdf
 reportlab
+python-docx
+odfpy

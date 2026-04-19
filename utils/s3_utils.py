@@ -3,7 +3,9 @@ import os
 import streamlit as st
 import pdb
 import io
-from pypdf import PdfReader
+
+from utils.preprocess_utils import *
+
 
 
 class S3:
@@ -110,20 +112,18 @@ class S3:
     
     def getS3FileData(self,file):
         response = self.s3_client.get_object(Bucket=os.environ['BUCKET'], Key=f'{os.environ['S3_FOLDER']}{file}')
-        # content = response['Body'].read().decode('utf-8')
-        # pdb.set_trace()
-        raw_data = response['Body'].read()
-        reader = PdfReader(io.BytesIO(raw_data))
+        file_stream = io.BytesIO(response['Body'].read())
 
-        # 4. Extract text from all pages
-        content = ""
-        for page in reader.pages:
-            content += page.extract_text() + "\n"
+        if file.endswith(".docx"):
+            return read_docx_stream(file_stream)
+        elif file.endswith(".pdf"):
+            return read_pdf_stream(file_stream)
+        elif file.endswith(".odt"):
+            return read_odt_stream(file_stream)
+        else:
+            st.write(f"Unsupported file type: {file}")
 
-        # pdb.set_trace()
-        # print(full_text)
         
-        return content
     
     def getS3FileMetaData(self,key):
         response = self.s3_client.head_object(
