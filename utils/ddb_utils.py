@@ -44,10 +44,12 @@ class DDB:
             response = self.table.put_item(
                 Item=item_data
             )
-            st.write("Item inserted successfully:")
+            return True
+            # st.write("Item inserted successfully:")
             # print(json.dumps(response, indent=2)) # Optional: print the response
         except Exception as e:
-            st.write(f"Error inserting item: **{e}** in DDB")
+            st.warning(f"Error inserting {filename.split("/")[-1]} in DDB:\n{e}")
+            return False
     
 
     def clear_table_items(self):

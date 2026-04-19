@@ -68,10 +68,10 @@ if "generated_files" not in st.session_state:
     st.session_state.generated_files = {}
 
 if "input_state_change" not in st.session_state:
-    st.session_state.generated_files = {}
+    st.session_state.input_state_change = False
 
 if "n_resumes" not in st.session_state:
-    st.session_state.input_state_change=False
+    st.session_state.n_resumes=0
 
 
 st.title('Resume-JD Matcher')
@@ -160,6 +160,10 @@ if submit_button or st.session_state.submit_jd:
             if len(st.session_state.df)!=0 and len(st.session_state.df)==st.session_state.n_resumes and not st.session_state.input_state_change:
                 df=st.session_state.df
             else:
+                if st.session_state.input_state_change:
+                    st.session_state.selected_rows = set()
+                    st.session_state.generated_files={}
+                
                 df=pd.DataFrame(columns=['Email','Phone No.','upload_time','file name','match_score'])
                 for i in results['result']['hits']:
                     cid=i['_id']
