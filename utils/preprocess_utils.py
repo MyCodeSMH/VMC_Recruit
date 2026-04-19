@@ -19,6 +19,11 @@ import spacy
 import glob
 import pdb
 import streamlit as st
+from pypdf import PdfReader
+from docx import Document
+from odf.opendocument import load
+from odf.text import P
+
 
 try:
     nlp = spacy.load("en_core_web_sm")
@@ -215,4 +220,30 @@ def list_office_and_pdf_files_glob(directory_path):
 
     return found_files
 
+
+def read_docx_stream(file_stream):
+    doc = Document(file_stream)
+    return "\n".join([para.text for para in doc.paragraphs])
+
+
+def read_pdf_stream(file_stream):
+    reader = PdfReader(file_stream)
+    text = []
+    for page in reader.pages:
+        text.append(page.extract_text() or "")
+    return "\n".join(text)
+
+
+def read_odt_stream(file_stream):
+    doc = load(file_stream)
+    paragraphs = doc.getElementsByType(P)
+    text_content = []
+    for para in paragraphs:
+        text = ""
+        for node in para.childNodes:
+            if node.nodeType == 3:  # TEXT_NODE
+                text += node.data
+        text_content.append(text)
+    return "\n".join(text_content)
+    # return "\n".join([p.firstChild.data if p.firstChild else "" for p in paragraphs])
 
