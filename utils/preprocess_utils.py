@@ -171,12 +171,12 @@ def getTextfromFile(file,match_flag=False):
         text = read_odt_file(file)
 
     else:
-        st.write(f"Unsupported file type: {file}")
+        st.warning(f"{file} could not be uploaded due to file format. Pls upload docx, pdf or odt files")
         return None, None, None,None
     
     # pdb.set_trace()
     if type(text)==NoneType:
-        st.write("problematic file")
+        # st.write("problematic file")
         return None, None, None,None
 
     # text=scrub_pii(text)
@@ -188,10 +188,10 @@ def getTextfromFile(file,match_flag=False):
   except Exception as e:
     # pdb.set_trace()
     if 'zip' in str(e).lower():
-      st.warning(f"File upload unsuccessful for {file}. Plase make sure file is not password protected")
-      return None,None,None,None
-    else:
-        pdb.set_trace()
+        st.warning(f"{file} could not be uploaded as it is password protected")
+        # st.write("File upload unsuccessful. Plase make sure file is not password protected")
+        
+    return None,None,None,None
 
   # st.write("preprocessing done")
   return text, user_name,user_email, user_phone

@@ -25,7 +25,9 @@ class VectorDB:
             self.index.delete(delete_all=True, namespace=os.environ["NAMESPACE"])
         index_stats = self.index.describe_index_stats()
         print(f"Index Stats: {index_stats}")
-
+    
+    def deleteRecord(self,idx):
+        self.index.delete(ids=idx)
 
     def upload_to_vectorDB(self,file):
         # st.write("extracting text...")
@@ -38,10 +40,10 @@ class VectorDB:
         # st.write(user_name,user_email, user_phone)
         # st.write(text)
         if type(text)==NoneType:
-                st.write("problematic file")
+                # st.write("problematic file")
                 return None, None, None, None,False
         
-        st.write(user_name,user_email, user_phone)
+        # st.write(user_name,user_email, user_phone)
         cid=getNewHash(user_name+user_email+user_phone+text)
         # st.write(f"**{len(text.split(" "))}** words")
         end_time = time.perf_counter()

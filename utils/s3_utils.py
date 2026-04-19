@@ -35,9 +35,11 @@ class S3:
                 }
                 s3_destination_key=f'match_info/{filename}'
                 self.s3_client.upload_file(file, s3_bucket, s3_destination_key,ExtraArgs=extra_s3_args)
+            return True
             # st.write(f"'{file.name}' successfully uploaded to 's3://{bucket_name}/all_resumes'")
         except Exception as e:
-            st.write(f"Error uploading file {file} to s3: {e}")
+            st.warning(f"Error uploading file {filename} to s3: {e}")
+            return False
     
 
     def list_s3_files(self,default_folder=True):
@@ -57,6 +59,12 @@ class S3:
                 print(f"File: {obj['Key']}")
         else:
             print("No files found in the specified prefix.")
+
+
+    def delete_file(self,file,default_folder=True):
+        
+        s3_key=f'{os.environ['S3_FOLDER']}{file}'
+        self.s3_client.delete_object(Bucket=os.environ['BUCKET'], Key=s3_key)
 
 
     def delete_files(self,default_folder=True):
