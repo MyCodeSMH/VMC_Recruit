@@ -24,14 +24,33 @@ class S3:
     
     def upload_to_s3(self,file,default_folder=True):
         # pdb.set_trace()
-        filename=file.split("/")[-1]
+        # filename=file.split("/")[-1]
+        
         # st.write(filename)
         try:
+            # pdb.set_trace()
+            
+            # file_bytes = file.read()
+            # file_for_upload = io.BytesIO(file_bytes)
+            # file_for_upload.seek(0)
+
             s3_bucket=os.environ['BUCKET']
             if default_folder:
+                filename=file.name.split("/")[-1]
                 s3_folder=os.environ['S3_FOLDER']
-                self.s3_client.upload_file(file, s3_bucket, f'{s3_folder}{filename}')
+                # self.s3_client.upload_file(file, s3_bucket, f'{s3_folder}{filename}')
+                # self.s3_client.upload_fileobj(file_for_upload,s3_bucket,f'{s3_folder}{filename}')
+                # file_bytes = file.getvalue()
+
+                self.s3_client.put_object(
+                    Bucket=s3_bucket,
+                    Key=f'{s3_folder}{filename}',
+                    Body=file.read(),
+                    # ContentType=file.type
+                )
             else:
+                # pdb.set_trace()
+                filename=file.split("/")[-1]
                 extra_s3_args={
                     "ContentType": "application/pdf"
                 }
@@ -113,6 +132,7 @@ class S3:
     def getS3FileData(self,file):
         response = self.s3_client.get_object(Bucket=os.environ['BUCKET'], Key=f'{os.environ['S3_FOLDER']}{file}')
         file_stream = io.BytesIO(response['Body'].read())
+        file_stream.seek(0)
 
         if file.endswith(".docx"):
             return read_docx_stream(file_stream)
