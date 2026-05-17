@@ -18,7 +18,7 @@ class DDB:
         return dynamodb, dynamodb.Table(os.environ['DDB_TABLE'])
     
 
-    def upload_to_ddb(self,cid,name,email,cn,uploaded_timestamp,filename):
+    def upload_to_ddb(self,cid,name,email,cn,uploaded_timestamp,file):
         # Define the item data as a Python dictionary
         # DynamoDB numbers should be handled with Python's Decimal type to avoid precision issues
         # when dealing with JSON serialization (if applicable)
@@ -35,7 +35,7 @@ class DDB:
             'userName': name,
             'userEmail': email,     # Replace with your sort key name and value (if applicable)
             'contact_no': cn,
-            'file name': filename.split("/")[-1],
+            'file name': file.name.split("/")[-1],
             'uploaded_timestamp': uploaded_timestamp
         }
 
@@ -48,7 +48,7 @@ class DDB:
             # st.write("Item inserted successfully:")
             # print(json.dumps(response, indent=2)) # Optional: print the response
         except Exception as e:
-            st.warning(f"Error inserting {filename.split("/")[-1]} in DDB:\n{e}")
+            st.warning(f"Error inserting {file.name.split("/")[-1]} in DDB:\n{e}")
             return False
     
 

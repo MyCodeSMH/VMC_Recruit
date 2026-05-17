@@ -27,7 +27,7 @@ class VectorDB:
         print(f"Index Stats: {index_stats}")
     
     def deleteRecord(self,idx):
-        self.index.delete(ids=idx)
+        self.index.delete(ids=idx,namespace='sample-namespace')
 
     def upload_to_vectorDB(self,file):
         # st.write("extracting text...")
@@ -52,14 +52,15 @@ class VectorDB:
 
         # st.write("uploading to vectorDB...")
         start_time = time.perf_counter()
-        self.index.upsert_records(namespace=os.environ["NAMESPACE"],records=[{"id":cid,"name":user_name,"email":user_email,"contact":user_phone,"file name":file.split("/")[-1],"content":text}])
+        # self.index.upsert_records(namespace=os.environ["NAMESPACE"],records=[{"id":cid,"name":user_name,"email":user_email,"contact":user_phone,"file name":file.split("/")[-1],"content":text}])
+        self.index.upsert_records(namespace=os.environ["NAMESPACE"],records=[{"id":cid,"name":user_name,"email":user_email,"contact":user_phone,"file name":file.name.split("/")[-1],"content":text}])
         # st.write("embedding uploaded to vectorDB")
         end_time = time.perf_counter()
         time_taken = end_time - start_time
         return user_name,user_email, user_phone,cid, True
         # st.write(f"uploading to vector DB took **{time_taken:.4f}** seconds")
     
-    def getTopMatches(self,jd,k=5):
+    def getTopMatches(self,jd,k=5,subset=[]):
         # pdb.set_trace()
         query_payload = {
             "inputs": {
@@ -68,6 +69,9 @@ class VectorDB:
             "top_k": k
         }
 
+        if len(subset)!=0:
+            query_payload["filter"]={"file name":{"$in": subset}}
+            
         results = self.index.search(
             namespace=os.environ["NAMESPACE"],
             query=query_payload

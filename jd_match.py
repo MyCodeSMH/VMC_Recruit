@@ -73,13 +73,46 @@ if "input_state_change" not in st.session_state:
 if "n_resumes" not in st.session_state:
     st.session_state.n_resumes=0
 
+if "problematic_files" not in st.session_state:
+    st.session_state.problematic_files = []
+
+if "custom_files" not in st.session_state:
+    st.session_state.custom_files = []
+
+if "button_type" not in st.session_state:
+    st.session_state.button_type=0
+
+if "custom_uploader_key" not in st.session_state:
+    st.session_state.custom_uploader_key = 0
+
+if "all_uploaded_files" not in st.session_state:
+    st.session_state.all_uploaded_files=[]
+
 
 st.title('Resume-JD Matcher')
 st.subheader('Upload a Job Description to Begin')
 
+
+def customFileChange(fileset1,fileset2):
+
+    if len(fileset1)!=len(fileset2):
+        return True
+    
+    fileset1.sort()
+    fileset2.sort()
+
+    for idx in range(len(fileset1)):
+        file1=fileset1[idx]
+        file2=fileset2[idx]
+        if file1!=file2:
+            return True
+    
+    return False
+
+
 def handle_changes():
     # If file removed
-    # pdb.set_trace()
+    
     if st.session_state.file_uploader is None:
         st.session_state.jd_file=None
         st.session_state.input_state_change=True
@@ -93,6 +126,18 @@ def handle_changes():
     if st.session_state.text_area != st.session_state.pasted_text:
         st.session_state.input_state_change=True
         st.session_state.jd_text=None
+    
+    # If any change in custom files
+    curr_custom_files=[file.name.split("/")[-1] for file in st.session_state[f"uploader_{st.session_state.custom_uploader_key}"]]
+    prev_custom_files=st.session_state.all_uploaded_files
+
+    # pdb.set_trace()
+    if curr_custom_files is None or len(curr_custom_files)==0 or customFileChange(curr_custom_files,prev_custom_files):
+        st.session_state.custom_files=[]
+        st.session_state.problematic_files=[]
+        st.session_state.all_uploaded_files=curr_custom_files
+        st.session_state.input_state_change=True
+
     
     st.session_state.jd_file=st.session_state.file_uploader
     st.session_state.jd_text=st.session_state.text_area
@@ -127,6 +172,18 @@ with st.form(key="my_form"):
 
     submit_button = st.form_submit_button(label="Find Top Resumes",on_click=handle_changes)
 
+    st.subheader("Or Custom Resume Match")
+
+    custom_file_uploader = st.file_uploader(
+            "Choose a folder",
+            accept_multiple_files="directory",
+            key=f"uploader_{st.session_state.custom_uploader_key}"
+        )
+    
+    custom_submit_button = st.form_submit_button(label="Custom Match",on_click=handle_changes)
+
+    completion_message = st.empty()
+
 #   st.session_state.submit_jd=True
 #   match_info_button = st.form_submit_button(label="Get Detailed Match info")
 # jd_text = st.text_input("Paste Job description here")
@@ -135,14 +192,52 @@ with st.form(key="my_form"):
 # pdb.set_trace()
 # pdb.set_trace()
 
-if submit_button or st.session_state.submit_jd:
+if submit_button or st.session_state.submit_jd or custom_submit_button:
+    
     st.session_state.submit_jd=True
+
+    if custom_submit_button:
+        if custom_file_uploader:
+            uploaded_files=[]
+            st.session_state.all_uploaded_files=[file.name.split("/")[-1] for file in custom_file_uploader]
+            for file in custom_file_uploader:
+                if file.name.split("/")[-1] not in st.session_state.custom_files and file.name.split("/")[-1] not in st.session_state.problematic_files:
+                    uploaded_files.append(file)
+            # pdb.set_trace()
+            if len(uploaded_files)!=0:
+                subset_resumes,problematic_resumes=complete_resume_upload_pipeline(uploaded_files,vector_db,s3,ddb,completion_message,custom=True)
+                st.session_state.custom_files=subset_resumes
+                st.session_state.problematic_files=problematic_resumes
+        else:
+            st.warning("No resumes found for custom search. Performing standard top resume matching. Please upload resumes for custom search ")
+            # st.session_state.jd_file=None
+            # st.session_state.pasted_text=""
+            # st.session_state.submit_jd=False
+    
+        
+        
+        # st.session_state.custom_files=[]
+        # st.session_state.problematic_files=[]
+    
+    # pdb.set_trace()
+    
+    if (submit_button and st.session_state.button_type==1) or (custom_submit_button and st.session_state.button_type==0):
+        st.session_state.button_type=1-st.session_state.button_type
+        st.session_state.input_state_change=True
+    
+    # pdb.set_trace()
+    if submit_button:
+        st.session_state.custom_files=[]
+        st.session_state.problematic_files=[]
+        st.session_state.custom_uploader_key += 1
+        st.rerun()
+
     if st.session_state.jd_file or len(st.session_state.pasted_text)>0:
         st.session_state.jd_file=jd_file
         # st.write(jd_text)
         try:
             jd_file=st.session_state.jd_file
-            if not st.session_state.jd_text.strip()=="":
+            if st.session_state.jd_text and (not st.session_state.jd_text.strip()==""):
                 jd=st.session_state.jd_text
             else:
                 if jd_file:
@@ -155,8 +250,13 @@ if submit_button or st.session_state.submit_jd:
             # st.write(jd)
         # Extract text from the uploaded PDF
             # jd = preprocess_text(jd_text)
+            
             top_resumes=[]
-            results=vector_db.getTopMatches(jd,st.session_state.n_resumes)
+            if st.session_state.button_type==1:
+                results=vector_db.getTopMatches(jd,st.session_state.n_resumes,st.session_state.custom_files)
+            else:
+                results=vector_db.getTopMatches(jd,st.session_state.n_resumes,[])
+            
             if len(st.session_state.df)!=0 and len(st.session_state.df)==st.session_state.n_resumes and not st.session_state.input_state_change:
                 df=st.session_state.df
             else:
@@ -264,6 +364,5 @@ if submit_button or st.session_state.submit_jd:
     #             getMatchInfo(s3,top_resume,jd,jd_file)
     #         print("match info file generation complete")
         
-
 
 

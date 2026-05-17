@@ -136,6 +136,7 @@ def update_table(df):
     for i, row in df.iterrows():
         # cols = st.columns([1, 3, 2, 2])
         cols = st.columns(widths)
+        # pdb.set_trace()
         filename=row["file name"].split(">")[1].split("<")[0]
         # checked = cols[-1].checkbox(
         #     "",
@@ -189,6 +190,7 @@ def update_table(df):
                 if  cols[idx].button("Get Match Info", key=f"gmi_{i}") or i in st.session_state.selected_rows:
                     # st.session_state.load_state.append(i)
                     st.session_state.selected_rows.add(i)
+                    # pdb.set_trace()
                     match_info_file=create_file(
                         filename,
                         # prev_session_state

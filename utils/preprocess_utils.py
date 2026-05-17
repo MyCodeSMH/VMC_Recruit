@@ -21,8 +21,10 @@ import pdb
 import streamlit as st
 from pypdf import PdfReader
 from docx import Document
-from odf.opendocument import load
-from odf.text import P
+from datetime import datetime
+import time
+# from odf.opendocument import load
+# from odf.text import P
 
 
 try:
@@ -176,7 +178,7 @@ def getTextfromFile(file,match_flag=False):
         text = read_odt_file(file)
 
     else:
-        st.warning(f"{file} could not be uploaded due to file format. Pls upload docx, pdf or odt files")
+        st.warning(f"{file.name} could not be uploaded due to file format. Pls upload docx, pdf or odt files")
         return None, None, None,None
     
     # pdb.set_trace()
@@ -193,7 +195,7 @@ def getTextfromFile(file,match_flag=False):
   except Exception as e:
     # pdb.set_trace()
     if 'zip' in str(e).lower():
-        st.warning(f"{file} could not be uploaded as it is password protected")
+        st.warning(f"{file.name} could not be uploaded as it is password protected")
         # st.write("File upload unsuccessful. Plase make sure file is not password protected")
         
     return None,None,None,None
@@ -246,4 +248,64 @@ def read_odt_stream(file_stream):
         text_content.append(text)
     return "\n".join(text_content)
     # return "\n".join([p.firstChild.data if p.firstChild else "" for p in paragraphs])
+
+
+def complete_resume_upload_pipeline(uploaded_files,vector_db,s3,ddb,completion_message=None,custom=False):
+    # pdb.set_trace()
+    subset=[]
+    problematic_files=[]
+    
+    if uploaded_files is not None and len(uploaded_files)!=0:
+        progress_bar = st.progress(0)
+        for idx in range(len(uploaded_files)):
+            uploaded_file=uploaded_files[idx]
+            ut=str(datetime.now())
+            # upload to vector db
+            try:
+                prog=int(((idx+1)/len(uploaded_files))*100)
+                progress_bar.progress(prog)
+                start_time = time.perf_counter()
+                user_name,user_email, user_phone,cid,flag=vector_db.upload_to_vectorDB(uploaded_file)
+                if flag==False:
+                    problematic_files.append(uploaded_file.name.split("/")[-1])
+                    continue
+                end_time = time.perf_counter()
+                time_taken = end_time - start_time
+                
+                start_time = time.perf_counter()
+                uploaded_file.seek(0)
+                uploaded_to_s3=s3.upload_to_s3(uploaded_file)
+                if not uploaded_to_s3:
+                    pdb.set_trace()
+                    problematic_files.append(uploaded_file.name.split("/")[-1])
+                    vector_db.deleteRecord(cid)
+                    continue
+                
+                uploaded_to_ddb=ddb.upload_to_ddb(cid,user_name,user_email,user_phone,ut,uploaded_file)
+                if not uploaded_to_ddb:
+                    # pdb.set_trace()
+                    problematic_files.append(uploaded_file.name.split("/")[-1])
+                    vector_db.delete_record(cid)
+                    s3.delete_file(uploaded_file.split('/')[-1])
+                    continue
+                
+                if custom:
+                    subset.append(uploaded_file.name.split("/")[-1])
+                
+                end_time = time.perf_counter()
+                time_taken = end_time - start_time
+                
+                
+            except Exception as e:
+                print(e)
+            
+        if completion_message:
+            completion_message.success("File upload complete!")
+    elif len(uploaded_files)==0:
+        st.warning("No files to upload")
+    else:
+        st.warning("Problem reading files from specified directory")
+    
+    return subset,problematic_files
+    
 

@@ -74,81 +74,65 @@ with st.form(key="my_form"):
 
   # uploaded_files = st.file_uploader("Choose a file", accept_multiple_files=True,
   #     type=['docx', 'pdf', 'odt','doc'])
+  # uploaded_files = st.file_uploader("Select a folder", accept_multiple_files='directory')
+  test_file_uploader = st.file_uploader("Choose a folder", accept_multiple_files="directory")
   submit_button = st.form_submit_button(label="Upload Resume")
+  
 
 # uploaded_files = st.file_uploader("Choose a file", type=['docx', 'pdf','odt','doc'])
 if submit_button:
-  # directory_to_scan = '/Users/shreymathur/Downloads/resumes_2'
   
-  directory_to_scan=config['directory_to_scan']
-  uploaded_files = list_office_and_pdf_files_glob(directory_to_scan)
+  uploaded_files=[]
+  if test_file_uploader:
+    for file in test_file_uploader:
+        uploaded_files.append(file)
   
-  if uploaded_files is not None and len(uploaded_files)!=0:
-    progress_bar = st.progress(0)
-    for idx in range(len(uploaded_files)):
-      uploaded_file=uploaded_files[idx]
-      # st.write("uploading to vector db")
-      ut=str(datetime.now())
-      # cid=getNewHash(user_email)
+  complete_resume_upload_pipeline(uploaded_files,vector_db,s3,ddb,completion_message)
+  # pdb.set_trace()
+  
+  # if uploaded_files is not None and len(uploaded_files)!=0:
+  #   progress_bar = st.progress(0)
+  #   for idx in range(len(uploaded_files)):
+  #     uploaded_file=uploaded_files[idx]
+  #     ut=str(datetime.now())
+      
 
-      # To read file as bytes:
-      # bytes_data = uploaded_file.getvalue()
-      # st.write("File uploaded successfully! Bytes read:", len(bytes_data))
-      # st.write("File name:", uploaded_file.name)
-      # st.write(uploaded_file)
-
-
-      # To read file as a string (for text-based files like .txt, .csv):
-      # string_data = bytes_data.decode('utf-8')
-      # st.write(string_data)
-
-      # You can also use the file's name
-
-      # upload to vector db
-      try:
-        start_time = time.perf_counter()
-        user_name,user_email, user_phone,cid,flag=vector_db.upload_to_vectorDB(uploaded_file)
-        if flag==False:
-          continue
-        end_time = time.perf_counter()
-        time_taken = end_time - start_time
-        # st.write(f"uploading to vector db took **{time_taken:.4f}** seconds")
-
-        # uploaded_file.seek(0)
-        # st.write("uploading to vector db")
-        start_time = time.perf_counter()
-        uploaded_to_s3=s3.upload_to_s3(uploaded_file)
-        if not uploaded_to_s3:
-          pdb.set_trace()
-          vector_db.delete_record(cid)
-          continue
+  #     # upload to vector db
+  #     try:
+  #       start_time = time.perf_counter()
+  #       user_name,user_email, user_phone,cid,flag=vector_db.upload_to_vectorDB(uploaded_file)
+  #       if flag==False:
+  #         continue
+  #       end_time = time.perf_counter()
+  #       time_taken = end_time - start_time
         
-        uploaded_to_ddb=ddb.upload_to_ddb(cid,user_name,user_email,user_phone,ut,uploaded_file)
-        if not uploaded_to_ddb:
-          pdb.set_trace()
-          vector_db.delete_record(cid)
-          s3.delete_file(uploaded_file.split('/')[-1])
-          continue
-        end_time = time.perf_counter()
-        time_taken = end_time - start_time
-        prog=int(((idx+1)/len(uploaded_files))*100)
-        progress_bar.progress(prog)
-        # st.write(f"uploading to s3 took **{time_taken:.4f}** seconds")
-        # st.write("succesfully processed")
-      except Exception as e:
-        print(e)
-        # if 'zip' in str(e).lower():
-        #   st.warning(f"{uploaded_file} could not be uploaded as it is password protected")
-        #   # st.write("File upload unsuccessful. Plase make sure file is not password protected")
-        # else:
-        # st.warning(f"{uploaded_file} could not be uploaded due to file format. Pls upload docx, pdf or odt files")
-          # st.write(f"Error uploading file {uploaded_file}: {e}")
-          # pdb.set_trace()
-    completion_message.success("File upload complete!")
-  elif len(uploaded_files)==0:
-    st.warning("No files to upload")
-  else:
-    st.warning("Problem reading files from specified directory")
+  #       start_time = time.perf_counter()
+  #       uploaded_file.seek(0)
+  #       uploaded_to_s3=s3.upload_to_s3(uploaded_file)
+  #       if not uploaded_to_s3:
+  #         pdb.set_trace()
+  #         vector_db.deleteRecord(cid)
+  #         continue
+        
+  #       uploaded_to_ddb=ddb.upload_to_ddb(cid,user_name,user_email,user_phone,ut,uploaded_file)
+  #       if not uploaded_to_ddb:
+  #         pdb.set_trace()
+  #         vector_db.delete_record(cid)
+  #         s3.delete_file(uploaded_file.split('/')[-1])
+  #         continue
+  #       end_time = time.perf_counter()
+  #       time_taken = end_time - start_time
+  #       prog=int(((idx+1)/len(uploaded_files))*100)
+  #       progress_bar.progress(prog)
+        
+  #     except Exception as e:
+  #       print(e)
+        
+  #   completion_message.success("File upload complete!")
+  # elif len(uploaded_files)==0:
+  #   st.warning("No files to upload")
+  # else:
+  #   st.warning("Problem reading files from specified directory")
   
 
 

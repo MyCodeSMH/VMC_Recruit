@@ -122,6 +122,7 @@ def getModelResponse(resume_text,jd_text,jd_file,resume):
 
 def getMatchInfo(s3_obj,file,jd,jd_file=''):
     # pdb.set_trace()
+    # print(file.tell())
     resume_text=s3_obj.getS3FileData(file)
     # pdb.set_trace()
     match_info_file_name=getModelResponse(resume_text,jd,jd_file,file)
